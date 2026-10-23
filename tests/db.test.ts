@@ -11,7 +11,7 @@ describe.skipIf(!url)("claimTicket", () => {
     const code = `TEST-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`.toUpperCase();
     try {
       const results = await Promise.all(
-        Array.from({ length: 50 }, (_, i) => claimTicket(code, "TEST 0000", `gate${(i % 8) + 1}`)),
+        Array.from({ length: 50 }, (_, i) => claimTicket(code, "TEST 0000", `gate${(i % 8) + 1}`, i % 2 ? "photo" : "paper")),
       );
       const winners = results.filter((r) => r.firstScan);
       expect(winners).toHaveLength(1);

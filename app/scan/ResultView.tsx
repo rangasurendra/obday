@@ -1,5 +1,5 @@
 import { formatDate, formatTime, timeAgo } from "@/lib/time";
-import type { ScanRecord, ScanResponse } from "@/lib/types";
+import { MEDIUM_LABEL, type Medium, type ScanRecord, type ScanResponse } from "@/lib/types";
 
 const RETRY_WINDOW_MS = 60_000;
 
@@ -63,11 +63,14 @@ const secondaryButton =
 
 export function ResultView({
   data,
+  medium,
   username,
   onNext,
   onType,
 }: {
   data: ScanResponse;
+  /** How this attempt's ticket was shown. */
+  medium: Medium;
   username: string;
   onNext: () => void;
   onType: () => void;
@@ -122,6 +125,7 @@ export function ResultView({
               <Field label="Scanned by" value={record.scannedBy} />
               <Field label="Date" value={formatDate(record.scannedAt)} />
               <Field label="Time" value={formatTime(record.scannedAt)} />
+              <Field label="Shown as" value={MEDIUM_LABEL[record.medium]} />
             </div>
           </div>
           <p className="m-0 text-center text-sm text-muted">Now recorded. This ticket can&apos;t be used again.</p>
@@ -133,10 +137,35 @@ export function ResultView({
     );
   }
 
+  // A photo of this ticket got in first and now the paper ticket is here
+  // (or the same photo is going round again).
+  const photoFirst = record.medium === "photo";
+
   return (
     <>
-      <Band tone="deny" icon="cross" title="ALREADY USED" subtitle="Do not admit · scanned before" />
+      <Band
+        tone="deny"
+        icon="cross"
+        title="ALREADY USED"
+        subtitle={photoFirst ? "Do not admit · send to OBA desk" : "Do not admit · scanned before"}
+      />
       <div className="flex grow flex-col gap-4 px-5 pt-6 pb-7">
+        {photoFirst && (
+          <div role="alert" className="flex gap-3 rounded-[14px] border-2 border-gold bg-[#2f2310] p-4">
+            <svg className="mt-0.5 shrink-0 text-gold" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <rect x="6" y="2" width="12" height="20" rx="2" />
+              <path d="M11 18h2" />
+            </svg>
+            <div className="flex flex-col gap-1">
+              <span className="text-lg font-semibold tracking-[0.06em] text-gold uppercase">First entry was a photo on a phone</span>
+              <span className="text-[15px] leading-snug text-ink">
+                {medium === "paper"
+                  ? "This guest has the paper ticket. Send them to the OBA desk to sort it out."
+                  : "The same ticket photo was used before. Send this guest to the OBA desk."}
+              </span>
+            </div>
+          </div>
+        )}
         <div className="overflow-hidden rounded-[14px] border border-deny-line bg-surface">
           <div className="flex items-center justify-between gap-3 px-4 py-4">
             <span className="text-xs tracking-[0.18em] text-deny-soft uppercase">First scanned</span>
@@ -148,6 +177,7 @@ export function ResultView({
             <Field label="Scanned by" value={record.scannedBy} />
             <Field label="How long ago" value={timeAgo(record.scannedAt, serverNow)} />
             <Field label="QR code" value={record.code} />
+            <Field label="First shown as" value={MEDIUM_LABEL[record.medium]} />
           </div>
         </div>
         <p className="m-0 flex items-center gap-2.5 px-1 text-sm text-muted">
@@ -155,7 +185,7 @@ export function ResultView({
             <circle cx="12" cy="12" r="9" />
             <path d="M12 7v5l3 2" />
           </svg>
-          This attempt: {username} at {formatTime(serverNow)} (logged)
+          This attempt: {username} at {formatTime(serverNow)}, {MEDIUM_LABEL[medium].toLowerCase()} (logged)
         </p>
         <button type="button" autoFocus onClick={onNext} className={`mt-auto ${primaryButton}`}>
           Scan next ticket

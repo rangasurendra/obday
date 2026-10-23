@@ -4,15 +4,15 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useEffectEvent, useRef, useState } from "react";
 import type QrScanner from "qr-scanner";
 import { formatShortTime } from "@/lib/time";
-import type { ScanResponse } from "@/lib/types";
+import type { Medium, ScanResponse } from "@/lib/types";
 import { signal, unlockAudio } from "./feedback";
 import { ErrorView, ResultView, isAdmit } from "./ResultView";
 
 type View =
   | { kind: "scanning" }
   | { kind: "checking"; raw: string }
-  | { kind: "result"; data: ScanResponse }
-  | { kind: "error"; raw: string; message: string };
+  | { kind: "result"; data: ScanResponse; medium: Medium }
+  | { kind: "error"; raw: string; medium: Medium; message: string };
 
 type LastScan = { label: string; admitted: boolean; at: string };
 
@@ -47,16 +47,18 @@ export default function Scanner({ username }: { username: string }) {
   const [flashOn, setFlashOn] = useState(false);
   const [manual, setManual] = useState("");
   const [last, setLast] = useState<LastScan | null>(null);
+  // Set by staff before scanning; goes back to paper after every ticket.
+  const [medium, setMedium] = useState<Medium>("paper");
 
   const check = useCallback(
-    async (raw: string) => {
+    async (raw: string, medium: Medium) => {
       busyRef.current = true;
       setView({ kind: "checking", raw });
       try {
         const res = await fetch("/api/scan", {
           method: "POST",
           headers: { "content-type": "application/json" },
-          body: JSON.stringify({ code: raw }),
+          body: JSON.stringify({ code: raw, medium }),
         });
         if (res.status === 401) {
           router.push("/login");
@@ -64,18 +66,18 @@ export default function Scanner({ username }: { username: string }) {
         }
         if (!res.ok) {
           signal(false);
-          setView({ kind: "error", raw, message: `Server error (${res.status}). Try again in a moment.` });
+          setView({ kind: "error", raw, medium, message: `Server error (${res.status}). Try again in a moment.` });
           return;
         }
         const data = (await res.json()) as ScanResponse;
         const admitted = isAdmit(data, username);
         signal(admitted);
-        setView({ kind: "result", data });
+        setView({ kind: "result", data, medium });
         setLast({
           label:
             data.status === "INVALID"
               ? `${raw.slice(0, 18) || "(empty)"} · Not valid`
-              : `${data.record.ticketNo || data.record.code} · ${admitted ? "Admitted" : "Already used"}`,
+              : `${data.record.ticketNo || data.record.code} · ${admitted ? "Admitted" : "Already used"}${medium === "photo" ? " · photo" : ""}`,
           admitted,
           at: data.status === "INVALID" ? new Date().toISOString() : data.serverNow,
         });
@@ -84,6 +86,7 @@ export default function Scanner({ username }: { username: string }) {
         setView({
           kind: "error",
           raw,
+          medium,
           message: navigator.onLine ? "Couldn't reach the server." : "No internet connection.",
         });
       }
@@ -96,7 +99,7 @@ export default function Scanner({ username }: { username: string }) {
     const prev = lastRawRef.current;
     if (prev && prev.raw === raw && Date.now() - prev.at < SAME_CODE_COOLDOWN_MS) return;
     lastRawRef.current = { raw, at: Date.now() };
-    void check(raw);
+    void check(raw, medium);
   });
 
   // Camera
@@ -163,6 +166,7 @@ export default function Scanner({ username }: { username: string }) {
     busyRef.current = false;
     if (lastRawRef.current) lastRawRef.current.at = Date.now();
     setManual("");
+    setMedium("paper");
     setView({ kind: "scanning" });
   };
 
@@ -183,7 +187,7 @@ export default function Scanner({ username }: { username: string }) {
     const raw = manual.trim();
     if (raw) {
       lastRawRef.current = { raw, at: Date.now() };
-      void check(raw);
+      void check(raw, medium);
     }
   };
 
@@ -192,7 +196,44 @@ export default function Scanner({ username }: { username: string }) {
   return (
     <>
       <main className="flex grow flex-col gap-4 p-5" aria-hidden={overlay}>
-        <div className="relative mx-auto aspect-square w-full max-w-[420px] overflow-hidden rounded-2xl bg-black">
+        <div role="group" aria-label="How is the ticket shown?" className="mx-auto flex w-full max-w-[420px] items-center gap-2">
+          <span className="text-[11px] tracking-[0.16em] text-muted uppercase">Shown as</span>
+          <div className="grid grow grid-cols-2 gap-1 rounded-xl border border-rule bg-surface p-1">
+            {(["paper", "photo"] as const).map((m) => (
+              <button
+                key={m}
+                type="button"
+                aria-pressed={medium === m}
+                onClick={() => setMedium(m)}
+                className={`flex h-11 items-center justify-center gap-2 rounded-lg text-[15px] font-medium tracking-[0.08em] uppercase ${
+                  medium === m ? (m === "photo" ? "bg-gold text-[#1a0e08]" : "bg-ink text-ground") : "text-muted"
+                }`}
+              >
+                {m === "paper" ? (
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <path d="M3 7a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v2a2 2 0 0 0 0 6v2a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-2a2 2 0 0 0 0-6z" />
+                  </svg>
+                ) : (
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <rect x="6" y="2" width="12" height="20" rx="2" />
+                    <path d="M11 18h2" />
+                  </svg>
+                )}
+                {m === "paper" ? "Paper" : "Phone photo"}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div
+          className={`relative mx-auto aspect-square w-full max-w-[420px] overflow-hidden rounded-2xl bg-black ${
+            medium === "photo" ? "ring-4 ring-gold" : ""
+          }`}
+        >
+          {medium === "photo" && (
+            <div className="absolute top-3 left-3 z-10 rounded-md bg-gold px-2.5 py-1 text-xs font-semibold tracking-[0.14em] text-[#1a0e08] uppercase">
+              Photo on phone
+            </div>
+          )}
           <video ref={videoRef} className="absolute inset-0 size-full object-cover" muted playsInline />
           {camera !== "on" && (
             <div className="absolute inset-0 flex items-center justify-center bg-[#1e1512] p-6 text-center text-sm tracking-wide text-muted">
@@ -278,9 +319,9 @@ export default function Scanner({ username }: { username: string }) {
         <div className="fixed inset-0 z-20 overflow-y-auto bg-ground">
           <div className="mx-auto flex min-h-dvh max-w-lg flex-col">
             {view.kind === "result" ? (
-              <ResultView data={view.data} username={username} onNext={backToScanning} onType={typeCode} />
+              <ResultView data={view.data} medium={view.medium} username={username} onNext={backToScanning} onType={typeCode} />
             ) : (
-              <ErrorView message={view.message} onRetry={() => void check(view.raw)} onBack={backToScanning} />
+              <ErrorView message={view.message} onRetry={() => void check(view.raw, view.medium)} onBack={backToScanning} />
             )}
           </div>
         </div>

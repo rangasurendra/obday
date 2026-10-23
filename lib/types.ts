@@ -1,10 +1,16 @@
 export type ScanResult = "ADMITTED" | "ALREADY_USED" | "INVALID";
 
+/** How the guest showed the ticket: the printed ticket, or a photo of it on a phone. */
+export type Medium = "paper" | "photo";
+
+export const MEDIUM_LABEL: Record<Medium, string> = { paper: "Paper ticket", photo: "Photo on phone" };
+
 export type ScanRecord = {
   code: string;
   ticketNo: string;
   scannedBy: string;
   scannedAt: string; // ISO, UTC
+  medium: Medium;
 };
 
 export type AttemptRecord = {
@@ -14,6 +20,7 @@ export type AttemptRecord = {
   result: ScanResult;
   scannedBy: string;
   attemptedAt: string; // ISO, UTC
+  medium: Medium;
 };
 
 export type ScanResponse =

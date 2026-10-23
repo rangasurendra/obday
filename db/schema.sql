@@ -16,6 +16,12 @@ create table if not exists attempts (
   attempted_at  timestamptz not null default now()
 );
 
+-- How the ticket was shown at the gate: the paper ticket, or a photo of it on a phone.
+alter table scans add column if not exists medium text not null default 'paper'
+  check (medium in ('paper', 'photo'));
+alter table attempts add column if not exists medium text not null default 'paper'
+  check (medium in ('paper', 'photo'));
+
 create index if not exists scans_at_idx on scans (scanned_at desc);
 create index if not exists attempts_at_idx on attempts (attempted_at desc);
 create index if not exists attempts_code_idx on attempts (qr_code);

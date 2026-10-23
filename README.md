@@ -73,6 +73,17 @@ npm run import-tickets -- data/tickets-source.csv               # real tickets o
 - [ ] `/admin` is open on one organiser device.
 - [ ] Printed fallback list of ticket numbers is at the desk.
 
+## Paper ticket or photo on a phone
+
+Above the camera there's a **Shown as: Paper | Phone photo** switch. When a guest shows the ticket
+as a photo on a phone, staff tap **Phone photo** before scanning. The switch goes back to **Paper**
+after every ticket. The choice is saved with the scan.
+
+If the paper ticket turns up after a photo of it was let in, the **Already used** screen warns
+*"First entry was a photo on a phone"* and tells staff to send the guest to the OBA desk.
+`/admin` counts **Entered by photo** and **Photo, then paper**, and the **Shown as** filter lists those tickets.
+Both CSV exports include a `shown_as` column.
+
 ## How double scans are prevented
 
 `scans.qr_code` is the table's primary key. `/api/scan` runs

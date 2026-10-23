@@ -3,7 +3,19 @@
 import { useRef } from "react";
 
 // A plain GET form, so filters live in the URL and survive the auto-refresh.
-export default function Filters({ tab, q, by, users }: { tab: string; q: string; by: string; users: string[] }) {
+export default function Filters({
+  tab,
+  q,
+  by,
+  shown,
+  users,
+}: {
+  tab: string;
+  q: string;
+  by: string;
+  shown: string;
+  users: string[];
+}) {
   const formRef = useRef<HTMLFormElement>(null);
 
   return (
@@ -36,6 +48,20 @@ export default function Filters({ tab, q, by, users }: { tab: string; q: string;
             {u}
           </option>
         ))}
+      </select>
+      <label htmlFor="shown" className="sr-only">
+        Shown as
+      </label>
+      <select
+        id="shown"
+        name="shown"
+        defaultValue={shown}
+        onChange={() => formRef.current?.requestSubmit()}
+        className="h-11 rounded-[10px] border border-rule bg-surface px-3 text-base"
+      >
+        <option value="">Paper and photo</option>
+        <option value="photo">Photo on phone only</option>
+        <option value="conflict">Photo, then paper shown</option>
       </select>
       <button
         type="submit"

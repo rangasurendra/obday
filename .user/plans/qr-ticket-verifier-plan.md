@@ -427,3 +427,20 @@ ivory with dark text. Touch targets ≥ 44 px, primary buttons 52–56 px.
 | R5 | Plaintext passwords leak through the repo | Private repo (Q5); passwords only usable for this one-time app |
 | R6 | Wrong times (server is UTC) | All display formatting pinned to `Asia/Colombo` |
 | R7 | Copied or photographed QR | It works once only; the second person gets "Already used" with time and gate |
+
+---
+
+## 13. Change request (2026-10-23): tickets shown as a photo on a phone
+
+Some guests show a photo of the ticket on a phone: it was shared, or someone else bought it for them.
+If the paper ticket arrives after a photo got in, the gate needs to see that.
+
+- **How it's recorded:** a **Shown as: Paper | Phone photo** switch above the camera. Staff set it
+  before scanning. It goes back to Paper after every ticket. The app can't tell a screen from paper
+  by itself, so staff decide.
+- **Data:** `scans.medium` and `attempts.medium` (`'paper' | 'photo'`, default `'paper'`).
+  Added with `alter table ... add column if not exists`, so the change is safe to run on the live database.
+- **Rule (decided):** paper after a photo is still **denied**. The Already used screen shows
+  "First entry was a photo on a phone" and sends the guest to the OBA desk.
+- **Admin:** tiles for *Entered by photo* and *Photo, then paper*, a **Shown as** filter, a
+  "Paper shown later" flag per ticket, and `shown_as` / `paper_shown_later` columns in the CSVs.

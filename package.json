@@ -1,0 +1,39 @@
+{
+  "name": "obday",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint",
+    "test": "vitest run",
+    "db:setup": "tsx scripts/db-setup.mts",
+    "reset-scans": "tsx scripts/reset-scans.mts",
+    "import-tickets": "tsx scripts/import-tickets.mts"
+  },
+  "dependencies": {
+    "@neondatabase/serverless": "^1.2.0",
+    "jose": "^6.2.13",
+    "next": "16.4.2",
+    "papaparse": "^5.7.0",
+    "qr-scanner": "^1.4.2",
+    "react": "19.3.0",
+    "react-dom": "19.3.0",
+    "server-only": "^0.0.1"
+  },
+  "devDependencies": {
+    "@tailwindcss/turbopack": "^4",
+    "@types/node": "^24.19.2",
+    "@types/papaparse": "^5.5.2",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "dotenv": "^18.0.9",
+    "eslint": "^9",
+    "eslint-config-next": "16.4.2",
+    "tailwindcss": "^4",
+    "tsx": "^4.23.15",
+    "typescript": "^5",
+    "vitest": "^5.0.5"
+  }
+}

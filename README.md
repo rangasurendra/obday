@@ -52,8 +52,20 @@ npm run reset-scans -- --yes                 # DELETE all scans + attempts (pre-
 point it at the production database URL temporarily, or run `truncate scans, attempts restart identity;`
 in the Neon SQL editor.
 
+## Test tickets
+
+`data/test-tickets.csv` holds 20 practice tickets, `OBTEST01` to `OBTEST20` (serials `TEST 01` to `TEST 20`).
+They're real, scannable tickets while they're in `tickets.csv`.
+
+```bash
+npm run import-tickets -- data/tickets-source.csv --with-test   # 600 real + 20 test tickets
+npm run test-qr-sheet                                            # data/test-qr-sheet.html, print or show on a screen
+npm run import-tickets -- data/tickets-source.csv               # real tickets only (do this before gates open)
+```
+
 ## Event-day checklist
 
+- [ ] Test tickets removed: re-import **without** `--with-test`, push, and check that `/admin` shows `/ 600`.
 - [ ] Real `tickets.csv` imported and deployed. The ticket count on `/admin` matches the number printed.
 - [ ] Two phones scan the same ticket at the same moment: one shows green, the other red.
 - [ ] Test scans cleared. `/admin` shows `Admitted 0 / <total>`.

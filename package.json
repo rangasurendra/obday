@@ -10,7 +10,8 @@
     "test": "vitest run",
     "db:setup": "tsx scripts/db-setup.mts",
     "reset-scans": "tsx scripts/reset-scans.mts",
-    "import-tickets": "tsx scripts/import-tickets.mts"
+    "import-tickets": "tsx scripts/import-tickets.mts",
+    "test-qr-sheet": "tsx scripts/make-test-qr-sheet.mts"
   },
   "dependencies": {
     "@neondatabase/serverless": "^1.2.0",
@@ -26,11 +27,13 @@
     "@tailwindcss/turbopack": "^4",
     "@types/node": "^24.19.2",
     "@types/papaparse": "^5.5.2",
+    "@types/qrcode": "^1.5.6",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "dotenv": "^18.0.9",
     "eslint": "^9",
     "eslint-config-next": "16.4.2",
+    "qrcode": "^1.5.4",
     "tailwindcss": "^4",
     "tsx": "^4.23.15",
     "typescript": "^5",

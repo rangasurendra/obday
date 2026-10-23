@@ -1,23 +1,6 @@
 import { formatDate, formatTime, timeAgo } from "@/lib/time";
+import { isAdmit } from "@/lib/admit";
 import { MEDIUM_LABEL, type Medium, type ScanRecord, type ScanResponse } from "@/lib/types";
-
-const RETRY_WINDOW_MS = 60_000;
-
-/**
- * A retry after a lost response comes back ALREADY_USED by the same user
- * seconds later. That is still this gate's admit, not a second guest.
- */
-export function isOwnRecentScan(data: ScanResponse, username: string): boolean {
-  return (
-    data.status === "ALREADY_USED" &&
-    data.record.scannedBy === username &&
-    Date.parse(data.serverNow) - Date.parse(data.record.scannedAt) < RETRY_WINDOW_MS
-  );
-}
-
-export function isAdmit(data: ScanResponse, username: string): boolean {
-  return data.status === "ADMITTED" || isOwnRecentScan(data, username);
-}
 
 function Field({ label, value, large }: { label: string; value: string; large?: boolean }) {
   return (
@@ -64,6 +47,7 @@ const secondaryButton =
 export function ResultView({
   data,
   medium,
+  retry,
   username,
   onNext,
   onType,
@@ -71,6 +55,8 @@ export function ResultView({
   data: ScanResponse;
   /** How this attempt's ticket was shown. */
   medium: Medium;
+  /** True when this result came from "Try again" after a connection error. */
+  retry: boolean;
   username: string;
   onNext: () => void;
   onType: () => void;
@@ -104,15 +90,15 @@ export function ResultView({
 
   const { record, serverNow } = data;
 
-  if (isAdmit(data, username)) {
-    const retry = data.status === "ALREADY_USED";
+  if (isAdmit(data, username, retry)) {
+    const recovered = data.status === "ALREADY_USED";
     return (
       <>
         <Band
           tone="admit"
           icon="check"
           title="ADMIT"
-          subtitle={retry ? "Recorded by you just now" : "Valid ticket · first scan"}
+          subtitle={recovered ? "Recorded by you just now" : "Valid ticket · first scan"}
         />
         <div className="flex grow flex-col gap-5 px-5 pt-6 pb-7">
           <div className="overflow-hidden rounded-[14px] border border-rule bg-surface">

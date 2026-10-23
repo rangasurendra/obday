@@ -6,12 +6,13 @@ import type QrScanner from "qr-scanner";
 import { formatShortTime } from "@/lib/time";
 import type { Medium, ScanResponse } from "@/lib/types";
 import { signal, unlockAudio } from "./feedback";
-import { ErrorView, ResultView, isAdmit } from "./ResultView";
+import { isAdmit } from "@/lib/admit";
+import { ErrorView, ResultView } from "./ResultView";
 
 type View =
   | { kind: "scanning" }
   | { kind: "checking"; raw: string }
-  | { kind: "result"; data: ScanResponse; medium: Medium }
+  | { kind: "result"; data: ScanResponse; medium: Medium; retry: boolean }
   | { kind: "error"; raw: string; medium: Medium; message: string };
 
 type LastScan = { label: string; admitted: boolean; at: string };
@@ -51,7 +52,7 @@ export default function Scanner({ username }: { username: string }) {
   const [medium, setMedium] = useState<Medium>("paper");
 
   const check = useCallback(
-    async (raw: string, medium: Medium) => {
+    async (raw: string, medium: Medium, retry = false) => {
       busyRef.current = true;
       setView({ kind: "checking", raw });
       try {
@@ -70,9 +71,9 @@ export default function Scanner({ username }: { username: string }) {
           return;
         }
         const data = (await res.json()) as ScanResponse;
-        const admitted = isAdmit(data, username);
+        const admitted = isAdmit(data, username, retry);
         signal(admitted);
-        setView({ kind: "result", data, medium });
+        setView({ kind: "result", data, medium, retry });
         setLast({
           label:
             data.status === "INVALID"
@@ -319,9 +320,9 @@ export default function Scanner({ username }: { username: string }) {
         <div className="fixed inset-0 z-20 overflow-y-auto bg-ground">
           <div className="mx-auto flex min-h-dvh max-w-lg flex-col">
             {view.kind === "result" ? (
-              <ResultView data={view.data} medium={view.medium} username={username} onNext={backToScanning} onType={typeCode} />
+              <ResultView data={view.data} medium={view.medium} retry={view.retry} username={username} onNext={backToScanning} onType={typeCode} />
             ) : (
-              <ErrorView message={view.message} onRetry={() => void check(view.raw, view.medium)} onBack={backToScanning} />
+              <ErrorView message={view.message} onRetry={() => void check(view.raw, view.medium, true)} onBack={backToScanning} />
             )}
           </div>
         </div>

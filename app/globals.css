@@ -1,0 +1,54 @@
+@import "tailwindcss";
+
+/* Palette taken from the OB Day 2026 ticket. */
+@theme {
+  --color-ground: #140a08;
+  --color-surface: #241311;
+  --color-line: #3a2420;
+  --color-rule: #6b5326;
+  --color-gold: #e2b95a;
+  --color-gold-light: #f3d88e;
+  --color-ink: #f5ebdd;
+  --color-muted: #bfae98;
+  --color-hint: #8c7b68;
+  --color-admit: #1f7a4a;
+  --color-ok: #3dbe7a;
+  --color-deny: #b3261e;
+  --color-deny-soft: #ff8a80;
+  --color-deny-ground: #3a1513;
+  --color-deny-line: #7a2a25;
+}
+
+@theme inline {
+  --font-sans: var(--font-oswald), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-playfair), Georgia, serif;
+}
+
+html {
+  color-scheme: dark;
+}
+
+body {
+  background: var(--color-ground);
+  color: var(--color-ink);
+}
+
+@keyframes scanline {
+  0%,
+  100% {
+    transform: translateY(-90px);
+  }
+  50% {
+    transform: translateY(90px);
+  }
+}
+
+.scanline {
+  animation: scanline 2.4s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .scanline {
+    animation: none;
+  }
+}

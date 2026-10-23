@@ -20,30 +20,44 @@ const text = readFileSync(file, "utf8").replace(/^﻿/, "");
 const firstLine = text.split(/\r?\n/, 1)[0].toLowerCase();
 const hasHeader = /qr|code|ticket|serial/.test(firstLine);
 
-let pairs: { raw: string; serial: string }[];
+// Write serials the way they are printed on the ticket: "BCOBA-181" -> "BCOBA 0181".
+const printedSerial = (s: string) => {
+  const m = /^([A-Za-z]+)[\s-]*(\d+)$/.exec(s.trim());
+  return m ? `${m[1].toUpperCase()} ${m[2].padStart(4, "0")}` : s.trim();
+};
+
+let pairs: { raw: string; serial: string; active: boolean }[];
 if (hasHeader) {
   const rows = parseCsv(text);
   const headers = Object.keys(rows[0] ?? {});
   const codeCol = headers.find((h) => /qr|code/.test(h));
   const serialCol = headers.find((h) => h !== codeCol && /ticket|serial|no/.test(h));
+  const statusCol = headers.find((h) => h === "status");
   if (!codeCol) throw new Error(`No QR/code column in headers: ${headers.join(", ")}`);
-  console.log(`Columns: code="${codeCol}" serial="${serialCol ?? "(none)"}"`);
-  pairs = rows.map((r) => ({ raw: r[codeCol] ?? "", serial: serialCol ? (r[serialCol] ?? "") : "" }));
+  console.log(`Columns: code="${codeCol}" serial="${serialCol ?? "(none)"}" status="${statusCol ?? "(none)"}"`);
+  pairs = rows.map((r) => ({
+    raw: r[codeCol] ?? "",
+    serial: serialCol ? printedSerial(r[serialCol] ?? "") : "",
+    // A status column, when present, must say "active" (or be blank) for the ticket to count.
+    active: !statusCol || ["", "active"].includes((r[statusCol] ?? "").toLowerCase()),
+  }));
 } else {
   pairs = text
     .split(/\r?\n/)
     .filter((l) => l.trim())
     .map((l) => {
       const [raw, serial = ""] = l.split(/[,\t]/);
-      return { raw, serial: serial.trim() };
+      return { raw, serial: printedSerial(serial), active: true };
     });
 }
 
 const seen = new Map<string, number>();
 const errors: string[] = [];
 const out: string[][] = [];
-pairs.forEach(({ raw, serial }, i) => {
+let skipped = 0;
+pairs.forEach(({ raw, serial, active }, i) => {
   const line = i + (hasHeader ? 2 : 1);
+  if (!active) return skipped++;
   const code = normalizeCode(raw);
   if (!code) return errors.push(`line ${line}: empty code`);
   if (seen.has(code)) return errors.push(`line ${line}: duplicate ${code} (first on line ${seen.get(code)})`);
@@ -58,5 +72,5 @@ if (errors.length) {
 
 writeFileSync("data/tickets.csv", toCsv(["qr_code", "ticket_no"], out).replace(/\r\n/g, "\n"));
 const withSerial = out.filter((r) => r[1]).length;
-console.log(`Wrote data/tickets.csv: ${out.length} tickets (${withSerial} with a serial number).`);
+console.log(`Wrote data/tickets.csv: ${out.length} tickets (${withSerial} with a serial number, ${skipped} not active and skipped).`);
 console.log(`First: ${out[0]?.join(" / ")}   Last: ${out.at(-1)?.join(" / ")}`);
